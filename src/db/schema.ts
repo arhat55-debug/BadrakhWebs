@@ -1,6 +1,6 @@
-import { pgTable, serial, text, integer, varchar, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, varchar, pgEnum, jsonb } from "drizzle-orm/pg-core";
 
-export const categoryEnum = pgEnum("category", ["account", "topup", "rent"]);
+export const categoryEnum = pgEnum("category", ["account", "topup", "rent", "midman"]);
 export const statusEnum = pgEnum("status", ["available", "sold", "rented"]);
 
 export const products = pgTable("products", {
@@ -16,4 +16,5 @@ export const products = pgTable("products", {
   rent1h: integer("rent_1h"),
   rent12h: integer("rent_12h"),
   rent24h: integer("rent_24h"),
+  binds: jsonb("binds").default([]),
 });
