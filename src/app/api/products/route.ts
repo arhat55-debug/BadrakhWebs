@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     let results;
     if (category && category !== "all") {
-      results = await db.select().from(products).where(eq(products.category, category as "account" | "topup" | "rent"));
+      results = await db.select().from(products).where(eq(products.category, category as "account" | "topup" | "rent" | "midman"));
     } else {
       results = await db.select().from(products);
     }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       .values({
         title: body.title,
         gameId: body.gameId,
-        category: body.category,
+        category: body.category as "account" | "topup" | "rent" | "midman",
         status: body.status || "available",
         tags: body.tags || [],
         basePrice: body.basePrice,
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
         rent1h: body.rent1h,
         rent12h: body.rent12h,
         rent24h: body.rent24h,
+        binds: body.binds || [],
       })
       .returning();
 
