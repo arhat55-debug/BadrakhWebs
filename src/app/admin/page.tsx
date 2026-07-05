@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { Plus, Trash2 } from "lucide-react";
+
+interface Bind {
+  type: "facebook" | "google" | "twitter" | "other";
+  value: string;
+  label?: string;
+}
 
 interface Product {
   id: number;
@@ -13,6 +20,7 @@ interface Product {
   messengerLink: string;
   imageUrls: string[];
   tags: string[];
+  binds: Bind[];
 }
 
 interface ContactConfig {
@@ -27,6 +35,13 @@ const DEFAULT_CONTACTS: ContactConfig[] = [
   { name: "Мидман Жаргалсайхан", url: "https://m.me/jargalsaikhan.official", phone: "" },
 ];
 
+const BIND_TYPES = [
+  { value: "facebook", label: "Facebook" },
+  { value: "google", label: "Google" },
+  { value: "twitter", label: "Twitter/X" },
+  { value: "other", label: "Бусад" },
+];
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
@@ -37,7 +52,6 @@ export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  // Form fields
   const [title, setTitle] = useState("");
   const [gameId, setGameId] = useState("");
   const [category, setCategory] = useState("account");
@@ -46,11 +60,11 @@ export default function AdminPage() {
   const [messengerLink, setMessengerLink] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [binds, setBinds] = useState<Bind[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Settings
   const [contacts, setContacts] = useState<ContactConfig[]>(DEFAULT_CONTACTS);
   const [settingsSaved, setSettingsSaved] = useState(false);
 
@@ -96,7 +110,7 @@ export default function AdminPage() {
   const resetForm = () => {
     setTitle(""); setGameId(""); setCategory("account"); setStatus("available");
     setBasePrice(""); setMessengerLink(""); setTagsInput(""); setImages([]);
-    setEditingProduct(null); setError("");
+    setBinds([]); setEditingProduct(null); setError("");
   };
 
   const startEdit = (product: Product) => {
@@ -109,6 +123,7 @@ export default function AdminPage() {
     setMessengerLink(product.messengerLink || "");
     setTagsInput((product.tags || []).join(", "));
     setImages(product.imageUrls || []);
+    setBinds(product.binds || []);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -133,12 +148,19 @@ export default function AdminPage() {
 
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
+  // Bind handlers
+  const addBind = () => setBinds((prev) => [...prev, { type: "facebook", value: "", label: "" }]);
+  const removeBind = (idx: number) => setBinds((prev) => prev.filter((_, i) => i !== idx));
+  const updateBind = (idx: number, field: keyof Bind, value: string) => {
+    setBinds((prev) => prev.map((b, i) => i === idx ? { ...b, [field]: value } : b));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
-    const body = { title, gameId, category, status, basePrice: Number(basePrice), messengerLink, imageUrls: images, tags };
+    const body = { title, gameId, category, status, basePrice: Number(basePrice), messengerLink, imageUrls: images, tags, binds };
 
     try {
       let res;
@@ -212,8 +234,7 @@ export default function AdminPage() {
 
         {activeTab === "products" && (
           <>
-            {/* FORM */}
-            <form onSubmit={handleSubmit} className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-4">
+            <form onSubmit={handleSubmit} className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-5">
               {editingProduct && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                   <span className="text-yellow-400 text-sm font-semibold">✏️ Засварлаж байна: {editingProduct.title}</span>
@@ -238,7 +259,7 @@ export default function AdminPage() {
                   <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500">
                     <option value="account">Admin Acc</option>
                     <option value="topup">Paid Post</option>
-                    <option value="midman">Moderator Acc</option>
+                    <option value="midman">Мидман</option>
                   </select>
                 </div>
                 <div>
@@ -256,7 +277,7 @@ export default function AdminPage() {
                   <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Messenger Линк</label>
+                  <label className="block text-sm font-medium mb-1">Холбогдох Messenger Линк</label>
                   <input type="url" value={messengerLink} onChange={(e) => setMessengerLink(e.target.value)} placeholder="https://m.me/username" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
@@ -266,6 +287,40 @@ export default function AdminPage() {
                 <input type="text" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="m416, max, glacier" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500" />
               </div>
 
+              {/* BIND ХЭСЭГ */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-200">Bind мэдээлэл</label>
+                  <button type="button" onClick={addBind}
+                    className="flex items-center gap-1.5 text-xs bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-600/30 px-3 py-1.5 rounded-lg transition">
+                    <Plus className="w-3.5 h-3.5" /> Bind нэмэх
+                  </button>
+                </div>
+                {binds.length === 0 && (
+                  <p className="text-xs text-gray-500 italic">Bind мэдээлэл нэмэгдээгүй байна.</p>
+                )}
+                {binds.map((bind, idx) => (
+                  <div key={idx} className="flex gap-2 items-start bg-gray-800/50 p-3 rounded-xl border border-gray-700/50">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <select value={bind.type} onChange={(e) => updateBind(idx, "type", e.target.value)}
+                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+                        {BIND_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                      <input type="text" value={bind.value} onChange={(e) => updateBind(idx, "value", e.target.value)}
+                        placeholder="example@gmail.com эсвэл link"
+                        className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 sm:col-span-2" />
+                    </div>
+                    <button type="button" onClick={() => removeBind(idx)}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-900/30 p-2 rounded-lg transition">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* ЗУРГУУД */}
               <div>
                 <label className="block text-sm font-medium mb-2">Зургууд</label>
                 <div className="flex flex-wrap gap-3 items-center">
@@ -292,7 +347,7 @@ export default function AdminPage() {
               </div>
             </form>
 
-            {/* PRODUCT LIST */}
+            {/* ЖАГСААЛТ */}
             <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
@@ -300,6 +355,7 @@ export default function AdminPage() {
                     <th className="p-4">ЗАР</th>
                     <th className="p-4">АНГИЛАЛ</th>
                     <th className="p-4">ҮНЭ</th>
+                    <th className="p-4">BIND</th>
                     <th className="p-4 text-center">ҮЙЛДЭЛ</th>
                   </tr>
                 </thead>
@@ -319,6 +375,13 @@ export default function AdminPage() {
                       </td>
                       <td className="p-4 capitalize text-gray-400">{product.category}</td>
                       <td className="p-4 font-medium text-blue-400">₮{product.basePrice.toLocaleString()}</td>
+                      <td className="p-4 text-xs text-gray-400">
+                        {product.binds && product.binds.length > 0
+                          ? product.binds.map((b, i) => (
+                            <span key={i} className="block">{b.type}: {b.value}</span>
+                          ))
+                          : <span className="text-gray-600">—</span>}
+                      </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button onClick={() => startEdit(product)} className="bg-blue-950/40 hover:bg-blue-900/60 border border-blue-900/50 text-blue-400 px-3 py-1.5 rounded-lg transition text-xs font-medium">Засах</button>
@@ -328,7 +391,7 @@ export default function AdminPage() {
                     </tr>
                   ))}
                   {products.length === 0 && (
-                    <tr><td colSpan={4} className="p-8 text-center text-gray-500">Одоогоор ямар нэгэн зар байхгүй байна.</td></tr>
+                    <tr><td colSpan={5} className="p-8 text-center text-gray-500">Одоогоор ямар нэгэн зар байхгүй байна.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -336,7 +399,6 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* SETTINGS TAB */}
         {activeTab === "settings" && (
           <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 space-y-6">
             <h2 className="text-lg font-bold text-white">Холбоо барих мэдээлэл</h2>
