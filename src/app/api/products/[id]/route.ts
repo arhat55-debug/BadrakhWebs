@@ -24,6 +24,7 @@ export async function PATCH(
       messengerLink: body.messengerLink,
       imageUrls: body.imageUrls,
       tags: body.tags,
+      binds: body.binds || [],
     }).where(eq(products.id, productId));
 
     return NextResponse.json({ success: true });
